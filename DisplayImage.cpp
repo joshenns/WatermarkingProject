@@ -4,6 +4,8 @@
 using namespace cv;
 using namespace std;
 
+void Haar1D(float *A, int width);
+
 int main(int argc, char** argv )
 {
     if ( argc != 2 )
@@ -40,4 +42,22 @@ int main(int argc, char** argv )
     waitKey(0);
 
     return 0;
+}
+
+// Unormalized version
+// assumes width is a power of 2
+void Haar1D(float *A, int width)
+{
+    float tmp[width]; // some compilers might not like this
+
+    while(width > 1) {
+        width /= 2;
+
+        for(int i=0; i < width; i++) {
+            tmp[i] = (A[2*i] + A[2*i+1]) * 0.5;
+            tmp[width + i] = (A[2*i] - A[2*i+1]) * 0.5;
+        }
+
+        memcpy(A, tmp, width*2*sizeof(float));
+    }
 }
