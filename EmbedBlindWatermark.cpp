@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <cmath>
+#include "Haar.h"
 
 const double PI = 3.14159;
 
@@ -10,28 +11,21 @@ using namespace std;
 double ***initialize_hsi(Mat image);
 void to_hsi(double ***hsi, Mat image);
 void to_rgb(double ***hsi, Mat &image);
-void haar1(double *vec, int n, int w);
-void haar2(double ***matrix, int rows, int cols);
-void embed(double ***hsi, double ***watermarkHsi, Mat image);
-void invHaar1(double *vec, int n, int w);
-void invHaar2(double ***matrix, int rows, int cols);
 void toArray(Mat image, double ***array);
 void toImage(Mat image, double ***array);
 double to_rad(int deg);
 
 int main(int argc, char** argv )
 {
-    if ( argc != 3 )
+    if ( argc != 2 )
     {
-        cout << "usage: DisplayImage.out <Image_Path> <Image_Path>\n";
+        cout << "usage: DisplayImage.out <Image_Path> " << endl;
         return -1;
     }
     //create image container to hold input image
     Mat image;
-    Mat watermark;
     //read image to image container
     image = imread( argv[1], 1 );
-    watermark = imread( argv[2], 1 );
     // Mat tempImage = Mat::zeros(image.size()*2,image.type());
 
     if ( !image.data )
@@ -40,50 +34,30 @@ int main(int argc, char** argv )
         return -1;
     }
 
-    if ( !watermark.data )
-    {
-        cout << "No watermark data \n";
-        return -1;
-    }
-
     /* initialize an array of doubles to hold hsi values */
     double ***hsi = initialize_hsi(image); 
-    double ***watermarkHsi = initialize_hsi(watermark); 
 
     /* convert image to hsi */
     to_hsi(hsi, image);
-    to_hsi(watermarkHsi, watermark);
 
     //create 2D Haar wavelets
-    haar2(hsi,image.rows,image.cols);
-    haar2(watermarkHsi,watermark.rows,watermark.cols);
+    haar2D(hsi,image.rows,image.cols);
+    // haar2(watermarkHsi,watermark.rows,watermark.cols);
 
     //embed image
-    embed(hsi, watermarkHsi, image);
 
     //convert from 2D Haar wavelets to pixels
-    invHaar2(hsi, image.rows, image.cols);
+    invHaar2D(hsi, image.rows, image.cols);
 
     /* convert image to rgb */
     to_rgb(hsi, image);
 
-    
 
-    //Mat temp = Mat::zeros(image.size(),image.type());
-
-    //     for(int y = 0; y < image.rows; y++){
-    //  for (int x = 0; x < image.rows; x++)
-    //  {
-    //      image.at<Vec3b>(y,x)[0] = 5;
-    //      image.at<Vec3b>(y,x)[1] = 5;
-    //      image.at<Vec3b>(y,x)[2] = image.at<Vec3b>(y,x)[2]/2;
-    //  }
-    // }
 
     // namedWindow("Display Image", WINDOW_AUTOSIZE );
     //namedWindow("New Image", WINDOW_AUTOSIZE );
     // imshow("Display Image", image);
-    imwrite("image.jpg",image);
+    imwrite("blind.jpg",image);
     //imshow("New Image", temp);
     waitKey(0);
 
@@ -218,167 +192,6 @@ void to_rgb(double ***hsi, Mat &image)
 
     }
   }
-}
-
-/** A Modified version of 1D Haar Transform, used by the 2D Haar Transform function **/
-void haar1(double *vec, int n, int w)
-{
-    int i=0;
-    double *vecp = new double[n];
-    for(i=0;i<n;i++)
-        vecp[i] = 0;
-
-        w/=2;
-        for(i=0;i<w;i++)
-        {
-            vecp[i] = (vec[2*i] + vec[2*i+1])/sqrt(2.0);
-            vecp[i+w] = (vec[2*i] - vec[2*i+1])/sqrt(2.0);
-            // vecp[i] = vec[i];
-            // vecp[i+w] = vec[i];
-        }
-        
-        for(i=0;i<(w*2);i++)
-            vec[i] = vecp[i];
-
-        delete [] vecp;
-}
-
-/** The 2D Haar Transform **/
-void haar2(double ***matrix, int rows, int cols)
-{
-    double *temp_row = new double[cols];
-    double *temp_col = new double[rows];
-
-    int i=0,j=0;
-    int w = cols, h=rows;
-
-    // while(w>1 || h>1)
-    // {
-        if(w>1)
-        {
-            for(i=0;i<h;i++)
-            {
-                for(j=0;j<cols;j++)
-                    temp_row[j] = matrix[i][j][2];
-
-                haar1(temp_row,cols,w);
-                
-                for(j=0;j<cols;j++)
-                    matrix[i][j][2] = temp_row[j];
-            }
-        }
-
-        if(h>1)
-        {
-            for(i=0;i<w;i++)
-            {
-                for(j=0;j<rows;j++)
-                    temp_col[j] = matrix[j][i][2];
-                haar1(temp_col, rows, h);
-                for(j=0;j<rows;j++)
-                    matrix[j][i][2] = temp_col[j];
-            }
-        }
-
-        if(w>1)
-            w/=2;
-        if(h>1)
-            h/=2;
-    // }
-
-    delete [] temp_row;
-    delete [] temp_col;
-}
-
-void invHaar1(double *vec, int n, int w)
-{
-    int i=0;
-    double *vecp = new double[n];
-    for(i=0;i<n;i++)
-        vecp[i] = 0;
-
-        // w/=2;
-        for(i=0;i<n;i+=2)
-        {
-            vecp[i] = (vec[i/2] - vecp[i/2+w/2])/sqrt(2.0);
-            vecp[i+1] = (vec[i/2] + vecp[i/2+w/2])/sqrt(2.0);
-        }
-        
-        for(i=0;i<(w);i++)
-            vec[i] = vecp[i];
-
-        delete [] vecp;
-}
-
-/** The 2D Haar Transform **/
-void invHaar2(double ***matrix, int rows, int cols)
-{
-    double *temp_row = new double[cols];
-    double *temp_col = new double[rows];
-
-    int i=0,j=0;
-    int w = cols, h=rows;
-
-    // while(w>1 || h>1)
-    // {
-        if(w>1)
-        {
-            for(i=0;i<h;i++)
-            {
-                for(j=0;j<cols;j++)
-                    temp_row[j] = matrix[i][j][2];
-
-                invHaar1(temp_row,cols,w);
-                
-                for(j=0;j<cols;j++)
-                    matrix[i][j][2] = temp_row[j];
-            }
-        }
-
-        if(h>1)
-        {
-            for(i=0;i<w;i++)
-            {
-                for(j=0;j<rows;j++)
-                    temp_col[j] = matrix[j][i][2];
-                invHaar1(temp_col, rows, h);
-                for(j=0;j<rows;j++)
-                    matrix[j][i][2] = temp_col[j];
-            }
-        }
-
-        if(w>1)
-            w/=2;
-        if(h>1)
-            h/=2;
-    // }
-
-    delete [] temp_row;
-    delete [] temp_col;
-}
-
-void embed(double ***hsi, double ***watermarkHsi, Mat image)
-{
-    int horizCenter = image.rows/2;
-    int vertCenter = image.cols/2;
-    double max = 0;
-    for(int x=horizCenter; x < image.rows;x++)
-    {
-        for(int y=vertCenter; y < image.cols;y++)
-        {
-            if (hsi[x][y][2] > max)
-                max = hsi[x][y][2];
-        }
-    }
-    for(int x=horizCenter;x < image.rows; x++)
-    {
-        for(int y=vertCenter;y < image.cols; y++)
-        {
-            hsi[x][y][2] = max/watermarkHsi[x][y][2]; 
-        }
-    }
-    hsi[image.rows-1][image.cols-1][2] = max;
-
 }
 
 void toArray(Mat image, double ***array)
