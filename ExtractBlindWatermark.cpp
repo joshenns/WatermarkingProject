@@ -9,6 +9,11 @@ using namespace cv;
 using namespace std;
 
 double ***initialize_hsi(Mat image);
+double ***storeA(double ***hsi, Mat image);
+double ***calculateB(double ***hsi, Mat image);
+double ***calculateC(double ***A, double ***B, Mat image);
+double compareImageToWatermark(double ***C, double ***hsi, Mat image);
+void applyArnoldTransformation(double ***C, Mat image);
 void to_hsi(double ***hsi, Mat image);
 void to_rgb(double ***hsi, Mat &image);
 void embed(double ***hsi, double ***watermarkHsi, Mat image);
@@ -19,17 +24,15 @@ void brighten_results(double***hsi, Mat &image);
 
 int main(int argc, char** argv )
 {
-    if ( argc != 3 )
+    if ( argc != 2 )
     {
-        cout << "usage: DisplayImage.out <Image_Path> <Image_Path>\n";
+        cout << "usage: DisplayImage.out <Image_Path> " << endl;
         return -1;
     }
     //create image container to hold input image
     Mat image;
-    Mat watermark;
     //read image to image container
     image = imread( argv[1], 1 );
-    watermark = imread( argv[2], 1 );
     // Mat tempImage = Mat::zeros(image.size()*2,image.type());
 
     if ( !image.data )
@@ -38,42 +41,46 @@ int main(int argc, char** argv )
         return -1;
     }
 
-    if ( !watermark.data )
-    {
-        cout << "No watermark data \n";
-        return -1;
-    }
-
     /* initialize an array of doubles to hold hsi values */
     double ***hsi = initialize_hsi(image); 
-    double ***watermarkHsi = initialize_hsi(watermark); 
 
     /* convert image to hsi */
     to_hsi(hsi, image);
-    to_hsi(watermarkHsi, watermark);
 
     //create 2D Haar wavelets
     haar2D(hsi,image.rows,image.cols);
     // haar2(watermarkHsi,watermark.rows,watermark.cols);
 
-    brighten_results(hsi,image);
-    //embed image
-    // embed(hsi, watermarkHsi, image);
+    //store LL portion of decomposed image in separate array 'A'
+    double ***A = storeA(hsi,image);
 
+    // calculate mean 2x2 of image and story in array 'B'
+    double ***B = calculateB(hsi, image);
+
+    // calculate difference between A and B and convert to binary
+    double ***C = calculateC(A, B, image);
+
+    // apply arnold transformation to create watermark by disordering pixels
+    applyArnoldTransformation(C, image);
+
+    double similarityRatio = compareImageToWatermark(C, hsi, image);
+
+
+    cout << "Similiarity Ratio: " << similarityRatio << endl;
     //convert from 2D Haar wavelets to pixels
     // invHaar2D(hsi, image.rows, image.cols);
 
     /* convert image to rgb */
-    to_rgb(hsi, image);
+    // to_rgb(hsi, image);
 
 
 
-    namedWindow("Display Image", WINDOW_AUTOSIZE );
+    // namedWindow("Display Image", WINDOW_AUTOSIZE );
     //namedWindow("New Image", WINDOW_AUTOSIZE );
-    imshow("Display Image", image);
+    // imshow("Display Image", image);
     // imwrite("image.jpg",image);
     //imshow("New Image", temp);
-    waitKey(0);
+    // waitKey(0);
 
     return 0;
 }
@@ -210,27 +217,128 @@ void to_rgb(double ***hsi, Mat &image)
 
 
 
-void embed(double ***hsi, double ***watermarkHsi, Mat image)
+double ***storeA(double ***hsi, Mat image)
 {
-    int horizCenter = image.rows/2;
-    int vertCenter = image.cols/2;
-    // double max = 0;
-    // for(int x=horizCenter; x < image.rows;x++)
-    // {
-    //     for(int y=vertCenter; y < image.cols;y++)
-    //     {
-    //         if (hsi[x][y][2] > max)
-    //             max = hsi[x][y][2];
-    //     }
-    // }
-    for(int row=0;row<image.rows/2;row++)
-    {
-        for(int col=0;col<image.cols/2;col++)
-        {
-            hsi[row+horizCenter][col+vertCenter][2] = hsi[row+horizCenter][col+vertCenter][2] + watermarkHsi[row*2][col*2][2]; 
-        }
-    }
+  double ***LL;
+  int row, col;
+  //create 3d array to store histogram
+  LL = new double **[image.rows/2];
+  //initialize array to zeros
+  for (row = 0; row < image.rows/2; row++){
+    LL[row] = new double*[image.cols/2];
+    for (col = 0; col < image.cols/2; col++){
+      LL[row][col] = new double[3];
+      LL[row][col][0] = hsi[row][col][0];
+      LL[row][col][1] = hsi[row][col][1];
+      LL[row][col][2] = hsi[row][col][2];
 
+    }
+  }
+  return LL;
+}
+
+double ***calculateB(double ***hsi, Mat image)
+{
+  
+  int row, col;
+  //create 3d array to store B
+  double ***B;
+  B = new double **[image.rows/2];
+  //initialize array to zeros
+  for (row = 0; row < image.rows/2; row++){
+    B[row] = new double*[image.cols/2];
+    for (col = 0; col < image.cols/2; col++){
+      B[row][col] = new double[3];
+      B[row][col][0] = 0;
+      B[row][col][1] = 0;
+      B[row][col][2] = 0;
+    }
+  }
+  //calculate mean 2x2's of image
+  for (row=0; row < image.rows; row+=2)
+  {
+    for(col=0; col< image.cols; col+=2)
+    {
+      B[row/2][col/2][0] = (hsi[row][col][0] + hsi[row+1][col][0] +
+        hsi[row][col+1][0] + hsi[row+1][col+1][0]) / 4;
+      B[row/2][col/2][1] = (hsi[row][col][1] + hsi[row+1][col][1] +
+        hsi[row][col+1][1] + hsi[row+1][col+1][1]) / 4;
+      B[row/2][col/2][2] = (hsi[row][col][2] + hsi[row+1][col][2] +
+        hsi[row][col+1][2] + hsi[row+1][col+1][2]) / 4;
+    }
+  }
+  return B;
+}
+
+double ***calculateC(double ***A, double ***B, Mat image)
+{
+  int row, col;
+  //create 3d array to store C
+  double ***C;
+  C = new double **[image.rows/2];
+  //initialize array to zeros
+  for (row = 0; row < image.rows/2; row++)
+  {
+    C[row] = new double*[image.cols/2];
+    for (col = 0; col < image.cols/2; col++)
+    {
+      C[row][col] = new double[3];
+      C[row][col][0] = 0;
+      C[row][col][1] = 0;
+      C[row][col][2] = 0;
+    }
+  }
+  for (row = 0; row < image.rows/2; row++)
+  {
+    for (col = 0; col < image.cols/2; col++)
+    {
+      // cout << abs(A[row][col][2]-B[row][col][2]) << endl;
+      // cout << A[row][col][2] << endl;
+      //set C value to 0 if A-B is even, 1 if A-B is odd
+      if(int(abs(A[row][col][2]-B[row][col][2]))%2 == 0)
+        C[row][col][2] = 0;
+      else
+        C[row][col][2] = 1;
+    }
+  }
+  return C;
+}
+
+void applyArnoldTransformation(double ***C, Mat image)
+{
+  double ***temp;
+  int row, col;
+  //create 3d array to store histogram
+  temp = new double **[image.rows/2];
+  //initialize array to zeros
+  for (row = 0; row < image.rows/2; row++){
+    temp[row] = new double*[image.cols/2];
+    for (col = 0; col < image.cols/2; col++){
+      temp[row][col] = new double[3];
+      temp[row][col][0] = 0;
+      temp[row][col][1] = 0;
+      temp[row][col][2] = 0;
+
+    }
+  }
+  int newx, newy;
+  for(int x = 0; x < image.rows/2; x++)
+  {
+    for(int y = 0; y < image.cols/2; y++)
+    {
+      newx = (2*x+y)%image.rows/2;
+      newy = (x+y)%image.cols/2;
+      temp[x][y][2] += C[newx][newy][2];
+    }
+  }
+
+  for(int x = 0; x < image.rows/2; x++)
+  {
+    for(int y = 0; y < image.cols/2; y++)
+    {
+      C[x][y][2] = temp[x][y][2];
+    }
+  }
 }
 
 void toArray(Mat image, double ***array)
@@ -245,16 +353,6 @@ void toArray(Mat image, double ***array)
     }
 }
 
-void brighten_results(double***hsi, Mat &image)
-{
-  for(int x=image.rows/2;x<image.rows;x++)
-  {
-    for(int y=image.cols/2;y<image.cols;y++)
-    {
-      hsi[x][y][2] = hsi[x][y][2]*15;
-    }
-  }
-}
 void toImage(Mat image, double ***array)
 {
     for(int y = 0; y < image.rows; y++){
@@ -273,6 +371,11 @@ void toImage(Mat image, double ***array)
          image.at<Vec3b>(y,x)[2] = array[x][y][2];
      }
     }
+}
+
+double compareImageToWatermark(double ***C, double ***hsi, Mat image)
+{
+  return 5.5;
 }
 
 /* convert degrees to radians */
