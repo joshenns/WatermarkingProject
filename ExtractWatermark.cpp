@@ -49,8 +49,9 @@ int main(int argc, char** argv )
     double ***watermarkHsi = initialize_hsi(watermark); 
 
     /* convert image to hsi */
-    to_hsi(hsi, image);
-    to_hsi(watermarkHsi, watermark);
+    // to_hsi(hsi, image);
+    // to_hsi(watermarkHsi, watermark);
+    toArray(image, hsi);
 
     //create 2D Haar wavelets
     haar2D(hsi,image.rows,image.cols);
@@ -64,7 +65,7 @@ int main(int argc, char** argv )
     // invHaar2D(hsi, image.rows, image.cols);
 
     /* convert image to rgb */
-    to_rgb(hsi, image);
+    // to_rgb(hsi, image);
 
     // namedWindow("Display Image", WINDOW_AUTOSIZE );
     //namedWindow("New Image", WINDOW_AUTOSIZE );

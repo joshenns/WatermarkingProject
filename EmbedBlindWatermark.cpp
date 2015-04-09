@@ -43,7 +43,8 @@ int main(int argc, char** argv )
     double ***hsi = initialize_hsi(image); 
 
     /* convert image to hsi */
-    to_hsi(hsi, image);
+    // to_hsi(hsi, image);
+    toArray(image, hsi);
 
     //create 2D Haar wavelets
     haar2D(hsi,image.rows,image.cols);
@@ -67,7 +68,8 @@ int main(int argc, char** argv )
     //convert from 2D Haar wavelets to pixels
     invHaar2D(hsi, image.rows, image.cols);
 
-    to_rgb(hsi, image);
+    // to_rgb(hsi, image);
+    toImage(image, hsi);
 
     imwrite("blind.jpg",image);
     waitKey(0);
@@ -175,10 +177,24 @@ double ***calculateC(double ***A, double ***B, Mat image)
       // cout << abs(A[row][col][2]-B[row][col][2]) << endl;
       // cout << A[row][col][2] << endl;
       //set C value to 0 if A-B is even, 1 if A-B is odd
+      if(int(abs(A[row][col][0]-B[row][col][0]))%2 == 0)
+        C[row][col][0] = 0;
+      else
+      {
+        C[row][col][0] = 1;
+      }
+      if(int(abs(A[row][col][1]-B[row][col][1]))%2 == 0)
+        C[row][col][1] = 0;
+      else
+      {
+        C[row][col][1] = 1;
+      }
       if(int(abs(A[row][col][2]-B[row][col][2]))%2 == 0)
         C[row][col][2] = 0;
       else
+      {
         C[row][col][2] = 1;
+      }
     }
   }
   return C;
@@ -208,6 +224,8 @@ void applyArnoldTransformation(double ***C, Mat image)
     {
       newx = (2*x+y)%image.rows/2;
       newy = (x+y)%image.cols/2;
+      temp[x][y][0] += C[newx][newy][0];
+      temp[x][y][1] += C[newx][newy][1];
       temp[x][y][2] += C[newx][newy][2];
     }
   }
@@ -217,6 +235,8 @@ void applyArnoldTransformation(double ***C, Mat image)
     for(int y = 0; y < image.cols/2; y++)
     {
       // cout << temp[x][y][2] << endl;
+      C[x][y][0] = temp[x][y][0];
+      C[x][y][1] = temp[x][y][1];
       C[x][y][2] = temp[x][y][2];
     }
   }

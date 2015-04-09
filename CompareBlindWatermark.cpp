@@ -51,20 +51,31 @@ int main(int argc, char** argv )
     /* initialize an array of doubles to hold hsi values */
     double ***hsi = initialize_hsi(originalImage); 
     /* convert image to hsi */
-    to_hsi(hsi, originalImage);
+    toArray(image, hsi);
+    // to_hsi(hsi, originalImage);
     //create 2D Haar wavelets
     haar2D(hsi,originalImage.rows,originalImage.cols);
     //store LL portion of decomposed image in separate array 'A'
+    //store LL portion of decomposed image in separate array 'A'
+    double ***A = storeA(hsi,image);
 
+    // calculate mean 2x2 of image and story in array 'B'
+    double ***B = calculateB(hsi, image);
 
-    /* initialize an array of doubles to hold hsi values */
-    double ***watermarkHsi = initialize_hsi(image); 
-    /* convert image to hsi */
-    to_hsi(watermarkHsi, image);
-    //create 2D Haar wavelets
-    haar2D(watermarkHsi,image.rows,image.cols);
+    // calculate difference between A and B and convert to binary
+    double ***C = calculateC(A, B, image);
+
+    // apply arnold transformation to create watermark by disordering pixels
+    applyArnoldTransformation(C, image);
+
+    // /* initialize an array of doubles to hold hsi values */
+    // double ***watermarkHsi = initialize_hsi(image); 
+    //  convert image to hsi 
+    // to_hsi(watermarkHsi, image);
+    // //create 2D Haar wavelets
+    // haar2D(watermarkHsi,image.rows,image.cols);
     
-    double similarityRatio = compareImageToWatermark(hsi, watermarkHsi, image);
+    double similarityRatio = compareImageToWatermark(hsi, C, image);
 
     cout << "Similiarity Percentage: " << similarityRatio << endl;
 
@@ -150,10 +161,24 @@ double ***calculateC(double ***A, double ***B, Mat image)
       // cout << abs(A[row][col][2]-B[row][col][2]) << endl;
       // cout << A[row][col][2] << endl;
       //set C value to 0 if A-B is even, 1 if A-B is odd
+      if(int(abs(A[row][col][0]-B[row][col][0]))%2 == 0)
+        C[row][col][0] = 0;
+      else
+      {
+        C[row][col][0] = 1;
+      }
+      if(int(abs(A[row][col][1]-B[row][col][1]))%2 == 0)
+        C[row][col][1] = 0;
+      else
+      {
+        C[row][col][1] = 1;
+      }
       if(int(abs(A[row][col][2]-B[row][col][2]))%2 == 0)
         C[row][col][2] = 0;
       else
+      {
         C[row][col][2] = 1;
+      }
     }
   }
   return C;
@@ -183,6 +208,8 @@ void applyArnoldTransformation(double ***C, Mat image)
     {
       newx = (2*x+y)%image.rows/2;
       newy = (x+y)%image.cols/2;
+      temp[x][y][0] += C[newx][newy][0];
+      temp[x][y][1] += C[newx][newy][1];
       temp[x][y][2] += C[newx][newy][2];
     }
   }
@@ -192,10 +219,13 @@ void applyArnoldTransformation(double ***C, Mat image)
     for(int y = 0; y < image.cols/2; y++)
     {
       // cout << temp[x][y][2] << endl;
+      C[x][y][0] = temp[x][y][0];
+      C[x][y][1] = temp[x][y][1];
       C[x][y][2] = temp[x][y][2];
     }
   }
 }
+
 
 
 /* initializes hsi array to zeros */
@@ -339,7 +369,7 @@ void toArray(Mat image, double ***array)
     }
 }
 
-double compareImageToWatermark(double ***hsi, double ***watermarkHsi, Mat image)
+double compareImageToWatermark(double ***hsi, double ***C, Mat image)
 {
 
 
@@ -349,10 +379,15 @@ double compareImageToWatermark(double ***hsi, double ***watermarkHsi, Mat image)
     for(int y = 0;y < image.cols/2; y++)
     {
       total ++;
-      if (hsi[x+image.rows/2][y+image.rows/2][2] == watermarkHsi[x+image.rows/2][y+image.cols/2][2])
+      if ((hsi[x+image.rows/2][y+image.rows/2][0] == C[x][y][0])||(hsi[x+image.rows/2][y+image.rows/2][1] == C[x][y][1])
+          || (hsi[x+image.rows/2][y+image.rows/2][2] == C[x][y][2]))
+      {
+        // cout << C[x][y][0] << endl;
         match ++;
+      }
     }
   }
+  cout << match << endl;
   return (match*1.0)/(total*1.0)*100;
 }
 
