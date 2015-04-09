@@ -67,23 +67,9 @@ int main(int argc, char** argv )
     //convert from 2D Haar wavelets to pixels
     invHaar2D(hsi, image.rows, image.cols);
 
-    /* convert image to rgb */
-    //   for(int x=image.rows/2;x<image.rows;x++)
-    // {
-    //   for(int y=image.cols/2;y<image.cols;y++)
-    //   {
-    //     hsi[x][y][2] = hsi[x][y][2]*15;
-    //   }
-    // }
     to_rgb(hsi, image);
 
-
-
-    // namedWindow("Display Image", WINDOW_AUTOSIZE );
-    //namedWindow("New Image", WINDOW_AUTOSIZE );
-    // imshow("Display Image", image);
     imwrite("blind.jpg",image);
-    //imshow("New Image", temp);
     waitKey(0);
 
     return 0;
@@ -230,6 +216,7 @@ void applyArnoldTransformation(double ***C, Mat image)
   {
     for(int y = 0; y < image.cols/2; y++)
     {
+      // cout << temp[x][y][2] << endl;
       C[x][y][2] = temp[x][y][2];
     }
   }

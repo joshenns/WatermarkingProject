@@ -48,8 +48,9 @@ int main(int argc, char** argv )
     double ***watermarkHsi = initialize_hsi(image); 
 
     /* convert image to hsi */
-    to_hsi(hsi, image);
-    to_hsi(watermarkHsi, watermark);
+    // to_hsi(hsi, image);
+    // to_hsi(watermarkHsi, watermark);
+    toArray(image, hsi);
 
     //create 2D Haar wavelets
     haar2D(hsi,image.rows,image.cols);
@@ -62,10 +63,10 @@ int main(int argc, char** argv )
     invHaar2D(hsi, image.rows, image.cols);
 
     /* convert image to rgb */
-    to_rgb(hsi, image);
+    // to_rgb(hsi, image);
 
 
-
+    toImage(image, hsi);
     // namedWindow("Display Image", WINDOW_AUTOSIZE );
     //namedWindow("New Image", WINDOW_AUTOSIZE );
     // imshow("Display Image", image);
@@ -226,7 +227,7 @@ void embed(double ***hsi, double ***watermarkHsi, Mat image, Mat watermark)
     {
         for(int col=0;col<image.cols;col++)
         {
-            hsi[row/2+horizCenter][col/2+vertCenter][2] = hsi[row/2+horizCenter][col/2+vertCenter][2] + 0.008*watermarkHsi[row][col][2]; 
+            hsi[row/2+horizCenter][col/2+vertCenter][2] = hsi[row/2+horizCenter][col/2+vertCenter][2] + 0.05*watermarkHsi[row][col][2]; 
         }
     }
 

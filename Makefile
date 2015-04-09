@@ -8,13 +8,13 @@ EXTRACT_SOURCES = ExtractWatermark.cpp Haar.cpp
 EXTRACT_OBJECTS = ExtractWatermark.o Haar.o
 EMBED_BLIND_SOURCES = EmbedBlindWatermark.cpp Haar.cpp
 EMBED_BLIND_OBJECTS = EmbedBlindWatermark.o Haar.o
-EXTRACT_BLIND_SOURCES = ExtractBlindWatermark.cpp Haar.cpp
-EXTRACT_BLIND_OBJECTS = ExtractBlindWatermark.o Haar.o
+COMPARE_BLIND_SOURCES = CompareBlindWatermark.cpp Haar.cpp
+COMPARE_BLIND_OBJECTS = CompareBlindWatermark.o Haar.o
 
 
 OUTPUT = Embed
  
-all: embed extract blind extractBlind
+all: embed extract blind compareBlind
 
 .PHONY: embed
 
@@ -26,8 +26,8 @@ extract:$(EXTRACT_OBJECTS)
 blind:$(EMBED_BLIND_OBJECTS)
 	$(CXX) -o Blind $(EMBED_BLIND_OBJECTS) $(LIBS)
 
-extractBlind:$(EXTRACT_BLIND_SOURCES)
-	$(CXX) -o ExtractBlind $(EXTRACT_BLIND_SOURCES) $(LIBS)
+compareBlind:$(COMPARE_BLIND_OBJECTS)
+	$(CXX) -o CompareBlind $(COMPARE_BLIND_OBJECTS) $(LIBS)
  
 $(OUTPUT): $(EMBED_OBJECTS)
 	$(CXX) -o $(OUTPUT) $(EMBED_OBJECTS) $(LIBS)

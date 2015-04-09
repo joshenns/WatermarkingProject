@@ -56,7 +56,7 @@ int main(int argc, char** argv )
     haar2D(hsi,image.rows,image.cols);
     // haar2(watermarkHsi,watermark.rows,watermark.cols);
 
-    brighten_results(hsi,image);
+    // brighten_results(hsi,image);
     //embed image
     // embed(hsi, watermarkHsi, image);
 
@@ -65,8 +65,6 @@ int main(int argc, char** argv )
 
     /* convert image to rgb */
     to_rgb(hsi, image);
-
-
 
     // namedWindow("Display Image", WINDOW_AUTOSIZE );
     //namedWindow("New Image", WINDOW_AUTOSIZE );
@@ -251,7 +249,7 @@ void brighten_results(double***hsi, Mat &image)
   {
     for(int y=image.cols/2;y<image.cols;y++)
     {
-      hsi[x][y][2] = hsi[x][y][2]*15;
+      hsi[x][y][2] = hsi[x][y][2]*20;
     }
   }
 }

@@ -13,8 +13,8 @@ void haar1D(double *vec, int n, int w)
         w/=2;
         for(i=0;i<w;i++)
         {
-            vecp[i] = (vec[2*i] + vec[2*i+1])/sqrt(2.0);
-            vecp[i+w] = (vec[2*i] - vec[2*i+1])/sqrt(2.0);
+            vecp[i] = (vec[2*i] + vec[2*i+1])/2.0;
+            vecp[i+w] = (vec[2*i] - vec[2*i+1])/2.0;
         }
         
         for(i=0;i<(w*2);i++)
@@ -38,13 +38,16 @@ void haar2D(double ***array, int rows, int cols)
         {
             for(i=0;i<h;i++)
             {
-                for(j=0;j<cols;j++)
-                    temp_row[j] = array[i][j][2];
+                for(int k=0;k<3;k++)
+                {
+                    for(j=0;j<cols;j++)
+                        temp_row[j] = array[i][j][k];
 
-                haar1D(temp_row,cols,w);
-                
-                for(j=0;j<cols;j++)
-                    array[i][j][2] = temp_row[j];
+                    haar1D(temp_row,cols,w);
+                    
+                    for(j=0;j<cols;j++)
+                        array[i][j][k] = temp_row[j];
+                }
             }
         }
 
@@ -52,13 +55,16 @@ void haar2D(double ***array, int rows, int cols)
         {
             for(i=0;i<w;i++)
             {
-                for(j=0;j<rows;j++)
-                    temp_col[j] = array[j][i][2];
+                for(int k=0;k<3;k++)
+                {
+                    for(j=0;j<rows;j++)
+                        temp_col[j] = array[j][i][k];
 
-                haar1D(temp_col, rows, h);
+                    haar1D(temp_col, rows, h);
 
-                for(j=0;j<rows;j++)
-                    array[j][i][2] = temp_col[j];
+                    for(j=0;j<rows;j++)
+                        array[j][i][k] = temp_col[j];
+                }
             }
         }
 
@@ -82,8 +88,8 @@ void invHaar1D(double *vec, int n, int w)
     for(i=0;i<n;i+=2)
     {
         // cout << vec[i/2+w/2] << endl;
-        vecp[i] = (vec[i/2] + vec[i/2+w/2])/sqrt(2.0);
-        vecp[i+1] = (vec[i/2] - vec[i/2+w/2])/sqrt(2.0);
+        vecp[i] = (vec[i/2] + vec[i/2+w/2]);
+        vecp[i+1] = (vec[i/2] - vec[i/2+w/2]);
 
     }
     
@@ -108,13 +114,16 @@ void invHaar2D(double ***array, int rows, int cols)
         {
             for(i=0;i<h;i++)
             {
-                for(j=0;j<cols;j++)
-                    temp_row[j] = array[i][j][2];
+                for(int k=0;k<3;k++)
+                {
+                    for(j=0;j<cols;j++)
+                        temp_row[j] = array[i][j][k];
 
-                invHaar1D(temp_row,cols,w);
-                
-                for(j=0;j<cols;j++)
-                    array[i][j][2] = temp_row[j];
+                    invHaar1D(temp_row,cols,w);
+                    
+                    for(j=0;j<cols;j++)
+                        array[i][j][k] = temp_row[j];
+                }
             }
         }
 
@@ -122,11 +131,14 @@ void invHaar2D(double ***array, int rows, int cols)
         {
             for(i=0;i<w;i++)
             {
-                for(j=0;j<rows;j++)
-                    temp_col[j] = array[j][i][2];
-                invHaar1D(temp_col, rows, h);
-                for(j=0;j<rows;j++)
-                    array[j][i][2] = temp_col[j];
+                for(int k=0;k<3;k++)
+                {
+                    for(j=0;j<rows;j++)
+                        temp_col[j] = array[j][i][k];
+                    invHaar1D(temp_col, rows, h);
+                    for(j=0;j<rows;j++)
+                        array[j][i][k] = temp_col[j];
+                }
             }
         }
 
